@@ -742,7 +742,7 @@ function renderOrder(){
 function renderOrders(){
   const pc={UPI:"ok",Cash:"low",Card:"info",Khata:"out"};
   return topbar("Orders","Today's bills · "+ORDERS.length+" so far")+`
-  <div class="card"><div class="tw"><table><thead><tr><th>Bill</th><th>Time</th><th>Customer</th><th>Paid by</th><th>YouPI check</th><th style="text-align:right">Amount</th><th></th></tr></thead>
+  <div class="card"><div class="tw"><table><thead><tr><th>Bill</th><th>Time</th><th>Customer</th><th>Paid by</th><th>Paid by</th><th style="text-align:right">Amount</th><th></th></tr></thead>
   <tbody>${ORDERS.map(o=>`<tr><td class="num"><b>#${o[0]}</b></td><td class="mut">${o[1]}</td><td>${o[2]}</td><td><span class="pill ${pc[o[4]]}">${o[4]==="Khata"?"Khata (due)":o[4]}</span></td><td class="note num">${o[4]==="Khata"?"Not needed":o[5]?(o[5]==="UTR MANUAL"?"Marked by cashier":"✓ "+o[5]):o[4]==="UPI"?"✓ UTR 42918"+String(o[0]).padStart(7,"0"):"✓ Approved at counter"}</td><td class="num" style="text-align:right"><b>${inr(o[3])}</b></td>
   <td><button class="mini" data-resend="${o[0]}">${I.wa.replace("<svg",'<svg width="15" height="15"')}Resend</button></td></tr>`).join("")}</tbody></table></div></div>`;
 }
@@ -895,7 +895,7 @@ function renderSettings(){
   <div class="cols"><div class="card"><div class="ch"><h3>Shop details</h3></div><div style="display:grid;gap:12px">
     ${f("s-name","Shop name","Sharma General Store")}${f("s-addr","Address","12, MG Road, Pune 411001")}${f("s-gst","GSTIN","27ABCDE1234F1Z5")}${f("s-upi","UPI ID for QR payments","sharmastore@okaxis")}</div></div>
   <div class="card"><div class="ch"><h3>Devices & bills</h3></div><div class="list">
-    ${row("Payment gateway","YouPI PG","info")}${row("Receipt printer (58 mm Bluetooth)","Connected")}${row("Barcode scanner","Connected")}${row("Card machine","Connected")}${row("Send bills on WhatsApp","On")}${row("Prices include GST","Yes","info")}${row("Currency","₹ INR","info")}${row("Language","English","info")}
+    ${row("Receipt printer (58 mm Bluetooth)","Connected")}${row("Barcode scanner","Connected")}${row("Card machine","Connected")}${row("Send bills on WhatsApp","On")}${row("Prices include GST","Yes","info")}${row("Currency","₹ INR","info")}${row("Language","English","info")}
   </div></div></div>`+gatewayCard();
 }
 
@@ -1040,7 +1040,7 @@ function gwTick(){
   else if(g.state==="PROCESSING"&&el>10000){g.state="SUCCESS";g.utr=String(429000000000+Math.floor(Math.random()*999999999));clearInterval(S.gwTimer);finishPay()}
 }
 const gwPill=g=>({ACTIVE:'<span class="pill info">Waiting</span>',PROCESSING:'<span class="pill low">Verifying</span>',SUCCESS:'<span class="pill ok">Paid</span>',AWAITING_CASHIER:'<span class="pill low">Cashier to approve</span>'}[g.state]);
-function gwStrip(g){return `<div class="gw" id="gwbox"><span class="gl">Y</span><span><b>YouPI PG</b> · <code>GALLA-${S.billNo}</code> · <code>${GWCODE[S.method]}</code></span><span class="grow"></span>${gwPill(g)}</div>`}
+function gwStrip(g){return `<div class="gw" id="gwbox"><span class="gl">₹</span><span><b>UPI</b> · <code>GALLA-${S.billNo}</code> · <code>${GWCODE[S.method]}</code></span><span class="grow"></span>${gwPill(g)}</div>`}
 function upiBlock(g,amt){
   if(g.state==="SUCCESS")return `<div class="paid"><span class="pc">${I.check}</span><div><b class="num">${inr(amt)} received by UPI</b><span class="num">UTR ${g.utr} · checked by bank SMS and Gmail</span></div></div>`;
   return `<div class="qrwrap"><div class="qrbox ${g.state==="PROCESSING"?"dim":""}"><canvas id="qr" width="340" height="340" aria-label="UPI QR code (sample)"></canvas><span class="qlogo">${I.rupee}</span></div>
@@ -1065,13 +1065,13 @@ function openPay(keep){
     area=upiBlock(g,t.total);
   }else if(m==="card"){
     area=`<div class="cardviz"><span class="chip"></span><div><div style="font-size:15px;letter-spacing:.18em" class="num">CARD</div><div style="font-size:11px;opacity:.7;margin-top:6px">Use your card machine</div></div></div>
-    <div><b style="font-size:16px">Ask the customer to tap, insert or swipe</b><p class="note" style="margin:4px 0 0">The machine shows ${inr(t.total)}. When it prints "Approved", press the button below. YouPI saves it as a card payment at the counter.</p></div>`;
+    <div><b style="font-size:16px">Ask the customer to tap, insert or swipe</b><p class="note" style="margin:4px 0 0">The machine shows ${inr(t.total)}. When it prints "Approved", press the button below.</p></div>`;
   }else if(m==="split"){
     const half=Math.round(t.total/2/10)*10;
     area=`<b style="font-size:16px">Split ${inr(t.total)} two ways</b>
     <div class="display"><div><small>Cash</small><b class="num">${inr(half)}</b></div>${I.cash.replace("<svg",'<svg width="28" height="28" style="color:var(--good)"')}</div>
     ${upiBlock(g,t.total-half)}
-    <p class="note" style="margin:0">Take the cash part first. YouPI checks the UPI part, then you approve the cash.</p>`;
+    <p class="note" style="margin:0">Take the cash part first, then confirm the UPI part once you see it land in your bank app.</p>`;
     ok=g.state==="SUCCESS";
   }else if(S.cust>0&&c.due+t.total>c.limit){
     ok=false;
@@ -1085,8 +1085,8 @@ function openPay(keep){
   modal("Take payment",`<div class="paygrid"><div>
     <div class="duebox"><div><small>Amount due · Bill #${S.billNo}</small><b class="num">${inr(t.total)}</b></div></div>
     <div class="methods" role="group" aria-label="Payment method">${METHODS.map(([k,l,s,bg,fg])=>`<button class="meth" data-m="${k}" aria-pressed="${m===k}"><span class="mi" style="background:var(${bg});color:var(${fg})">${I[k]}</span><span><b>${l}</b><small>${s}</small></span></button>`).join("")}</div>
-  </div><div class="payarea">${g?gwStrip(g):`<div class="gw"><span class="gl">Y</span><span>Credit stays in Galla's khata book. No money moves now, so nothing goes to YouPI.</span></div>`}${area}
-    <button class="confirm" id="confirmPay" ${ok?"":"disabled"}>${I.check}${m==="khata"?"Add "+inr(t.total)+" to khata":m==="upi"?(ok?"Continue to bill":"Waiting for YouPI…"):m==="split"?(ok?"Approve cash and finish":"Waiting for the UPI part…"):"Approve "+inr(t.total)+" in YouPI"}</button></div></div>`);
+  </div><div class="payarea">${g?gwStrip(g):`<div class="gw"><span class="gl">₹</span><span>Credit stays in Galla's khata book. No money moves now.</span></div>`}${area}
+    <button class="confirm" id="confirmPay" ${ok?"":"disabled"}>${I.check}${m==="khata"?"Add "+inr(t.total)+" to khata":m==="upi"?(ok?"Continue to bill":"Waiting for payment…"):m==="split"?(ok?"Approve cash and finish":"Waiting for the UPI part…"):"Approve "+inr(t.total)}</button></div></div>`);
   if($("#qr"))drawQR();
   if(scroll)$(".modal").scrollTop=scroll;
 }
@@ -1119,7 +1119,7 @@ function finishPay(){
   <div><div class="bseg" role="group" aria-label="Bill design"><button data-bs="classic" aria-pressed="${S.billStyle!=="kirana"}">Classic</button><button data-bs="kirana" aria-pressed="${S.billStyle==="kirana"}">Kirana</button></div>
   <div id="rcWrap">${billHTML(S.lastBill)}</div></div></div>`);
   $("#layer").innerHTML=`<div class="scrim"><div class="modal sm apm" role="status" aria-live="polite"><div class="apbox"><div class="ap" id="ap"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="trk" cx="50" cy="50" r="44"/><circle class="fill" cx="50" cy="50" r="46"/><circle class="ring" cx="50" cy="50" r="44"/><path class="tick" d="M31 51 L44.5 64 L70 37"/></svg></div>
-    <div class="apt" id="apt">${m==="khata"?"Saving to khata…":m==="cash"?"Recording cash…":"Confirming with YouPI…"}</div><div class="aps" id="aps">Bill #${S.billNo}</div></div></div></div>`;
+    <div class="apt" id="apt">${m==="khata"?"Saving to khata…":m==="cash"?"Recording cash…":"Confirming payment…"}</div><div class="aps" id="aps">Bill #${S.billNo}</div></div></div></div>`;
   clearTimeout(S.apT);S.apT=setTimeout(()=>{const a=$("#ap");if(!a)return;a.classList.add("ok");chime();
     $("#apt").innerHTML=`<small>${m==="khata"?"Saved on credit":"Payment received"}</small>${inr(t.total)}`;$("#apt").className="apt big";
     $("#aps").textContent=m==="cash"&&chg>0?"Give back "+inr(chg):"Paid by "+label+(gref.startsWith("UTR")?" · "+gref:"");
@@ -1151,7 +1151,7 @@ function billHTML(d){
     <div class="bg h"><span>GST</span><span>Taxable</span><span>CGST</span><span>SGST</span></div>${gst}${hr}
     <div class="rr"><span>Paid by</span><span>${d.label}</span></div>
     ${d.chg?`<div class="rr"><span>Change given</span><span>${d.chg.toFixed(2)}</span></div>`:""}
-    ${d.gref?`<div class="rr"><span>Ref</span><span>${d.gref}</span></div><div class="rr"><span>Verified</span><span>YouPI PG</span></div>`:""}
+    
     <div class="bc" aria-hidden="true"></div>
     <div class="c" style="margin-top:6px">Thank you! Visit again.<br><span style="opacity:.6">Goods once sold can be exchanged within 7 days</span></div>
   </div>`;

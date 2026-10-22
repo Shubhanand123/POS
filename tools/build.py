@@ -15,6 +15,23 @@ def R(a, b, cnt=1):
 
 # demo-only texts
 R('<span class="pill ok">Connected (demo)</span>', '<span class="pill info">Set up below</span>')
+
+# drop YouPI branding: Galla uses a plain UPI QR, cashier confirms by hand
+R('function gwStrip(g){return `<div class="gw" id="gwbox"><span class="gl">Y</span><span><b>YouPI PG</b> · <code>GALLA-${S.billNo}</code> · <code>${GWCODE[S.method]}</code></span><span class="grow"></span>${gwPill(g)}</div>`}',
+  'function gwStrip(g){return `<div class="gw" id="gwbox"><span class="gl">₹</span><span><b>UPI</b> · <code>GALLA-${S.billNo}</code> · <code>${GWCODE[S.method]}</code></span><span class="grow"></span>${gwPill(g)}</div>`}')
+R('The machine shows ${inr(t.total)}. When it prints "Approved", press the button below. YouPI saves it as a card payment at the counter.',
+  'The machine shows ${inr(t.total)}. When it prints "Approved", press the button below.')
+R('Take the cash part first. YouPI checks the UPI part, then you approve the cash.',
+  'Take the cash part first, then confirm the UPI part once you see it land in your bank app.')
+R('${g?gwStrip(g):`<div class="gw"><span class="gl">Y</span><span>Credit stays in Galla\'s khata book. No money moves now, so nothing goes to YouPI.</span></div>`}',
+  '${g?gwStrip(g):`<div class="gw"><span class="gl">₹</span><span>Credit stays in Galla\'s khata book. No money moves now.</span></div>`}')
+R('${m==="khata"?"Add "+inr(t.total)+" to khata":m==="upi"?(ok?"Continue to bill":"Waiting for YouPI…"):m==="split"?(ok?"Approve cash and finish":"Waiting for the UPI part…"):"Approve "+inr(t.total)+" in YouPI"}',
+  '${m==="khata"?"Add "+inr(t.total)+" to khata":m==="upi"?(ok?"Continue to bill":"Waiting for payment…"):m==="split"?(ok?"Approve cash and finish":"Waiting for the UPI part…"):"Approve "+inr(t.total)}')
+R('${m==="khata"?"Saving to khata…":m==="cash"?"Recording cash…":"Confirming with YouPI…"}',
+  '${m==="khata"?"Saving to khata…":m==="cash"?"Recording cash…":"Confirming payment…"}')
+R('<th>YouPI check</th>', '<th>Paid by</th>')
+R('${d.gref?`<div class="rr"><span>Ref</span><span>${d.gref}</span></div><div class="rr"><span>Verified</span><span>YouPI PG</span></div>`:""}', '')
+R('${row("Payment gateway","YouPI PG","info")}', '')
 R('<div style="font-size:15px;letter-spacing:.18em" class="num">•••• •••• •••• 4821</div><div style="font-size:11px;opacity:.7;margin-top:6px">Card machine connected</div>',
   '<div style="font-size:15px;letter-spacing:.18em" class="num">CARD</div><div style="font-size:11px;opacity:.7;margin-top:6px">Use your card machine</div>')
 R('<b>No items match "${S.q}"</b>Check the spelling or scan the barcode.',

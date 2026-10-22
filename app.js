@@ -1,11 +1,11 @@
 /* Galla app layer: saves data on this device, real barcode scanning (camera + USB/Bluetooth scanner),
-   item and customer forms with photos, real UPI QR, printing, WhatsApp bills and optional YouPI PG. */
+   item and customer forms with photos, real UPI QR, printing and WhatsApp bills. */
 "use strict";
 
 /* ---------- shop settings and saved data ---------- */
 const KEY = "galla-data-v1";
 const SHOP = { name: "Sharma General Store", addr: "12, MG Road, Pune 411001", gst: "27ABCDE1234F1Z5", upi: "sharmastore@okaxis",
-  phone: "", cashier: "Ravi", paper: "80", ypUrl: "", ypMerchant: "", sample: true };
+  phone: "", cashier: "Ravi", paper: "80", sample: true };
 let saveTimer = 0, storageFull = false;
 
 function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); return true } catch (e) { return false } }
@@ -47,8 +47,8 @@ billHTML = function (d) {
     .replaceAll("Sharma General Store", esc(SHOP.name))
     .replaceAll("12, MG Road, Pune 411001", esc(SHOP.addr) + (SHOP.phone ? " · " + esc(SHOP.phone) : ""))
     .replaceAll("27ABCDE1234F1Z5", esc(SHOP.gst) || "-")
-    // only say "Verified" when YouPI really checked the payment
-    .replace(/<div class="rr"><span>Ref<\/span><span>[^<]*<\/span><\/div><div class="rr"><span>Verified<\/span><span>YouPI PG<\/span><\/div>/, m => SHOP.ypUrl && SHOP.ypMerchant && !(d.utr === "MANUAL") ? m : "");
+    // Ref/Verified rows are only in the mockup's sample bill; a real bill never shows them
+    .replace(/<div class="rr"><span>Ref<\/span><span>[^<]*<\/span><\/div><div class="rr"><span>Verified<\/span><span>YouPI PG<\/span><\/div>/, "");
 };
 
 /* finished bills are kept with their date, lines and the bill itself */
@@ -99,55 +99,30 @@ drawQR = function () {
   c.setAttribute("aria-label", "UPI QR code for " + inr(amt));
 };
 
-/* ---------- payments: YouPI PG when set up, otherwise the cashier confirms ---------- */
-const ypOn = () => !!(SHOP.ypUrl && SHOP.ypMerchant);
+/* ---------- payments: plain UPI QR, cashier confirms by hand ---------- */
 gwSession = function () {
   const key = S.billNo + ":" + S.method + ":" + totals().total;
   if (S.gw && S.gw.key === key) return S.gw;
   clearInterval(S.gwTimer);
   const digital = S.method === "upi" || S.method === "split";
   S.gw = { key, id: "GALLA-" + S.billNo, state: digital ? "ACTIVE" : "AWAITING_CASHIER", t0: Date.now(), utr: "" };
-  if (digital) {
-    S.gwTimer = setInterval(gwTick, 3000);
-    if (ypOn()) ypCreate(S.gw);
-  }
+  if (digital) S.gwTimer = setInterval(gwTick, 3000);
   return S.gw;
 };
-async function ypCreate(g) {
-  const t = totals(), amt = S.method === "split" ? t.total - Math.round(t.total / 2 / 10) * 10 : t.total;
-  try {
-    const r = await fetch(SHOP.ypUrl.replace(/\/$/, "") + "/api/v1/payments", { method: "POST", headers: { "Content-Type": "application/json", "X-Merchant-Id": SHOP.ypMerchant },
-      body: JSON.stringify({ orderId: g.id + "-" + Date.now().toString(36), amount: amt.toFixed(2), currency: "INR", method: "UPI" }) });
-    const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status);
-    g.remote = j.paymentId; g.checkoutUrl = j.checkoutUrl || ""; if ($("#qr")) drawQR();
-  } catch (e) { g.ypError = String(e.message || e); toast("YouPI could not be reached. Check the bank app and confirm by hand.") }
-}
-gwTick = async function () {
+gwTick = function () {
   const g = S.gw; if (!g || !$("#gwbox")) { clearInterval(S.gwTimer); return }
   const el = Date.now() - g.t0, left = Math.max(0, 600 - Math.floor(el / 1000)), tm = $("#gwTimer");
   if (tm) tm.textContent = Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0");
-  if (!g.remote || g.busy) return;
-  g.busy = true;
-  try {
-    const r = await fetch(SHOP.ypUrl.replace(/\/$/, "") + "/api/v1/payments/" + g.remote, { headers: { "X-Merchant-Id": SHOP.ypMerchant } });
-    const j = await r.json(), st = String(j.status || "").toUpperCase();
-    if (st === "SUCCESS" && (!j.method || j.method === "UPI")) {
-      g.state = "SUCCESS"; g.utr = j.utr || j.bankReference || j.referenceId || "YouPI"; clearInterval(S.gwTimer);
-      if (S.method === "split") openPay(true); else finishPay();   // straight to the tick
-    } else if (st === "PROCESSING" && g.state !== "PROCESSING") { g.state = "PROCESSING"; openPay(true) }
-    else if (["FAILED", "EXPIRED", "CANCELLED"].includes(st)) { clearInterval(S.gwTimer); toast("YouPI says the payment " + st.toLowerCase()) }
-  } catch (e) {} finally { g.busy = false }
 };
 upiBlock = function (g, amt) {
-  if (g.state === "SUCCESS") return `<div class="paid"><span class="pc">${I.check}</span><div><b class="num">${inr(amt)} received by UPI</b><span class="num">${g.utr === "MANUAL" ? "Confirmed by the cashier" : "Ref " + esc(g.utr) + " · checked by YouPI"}</span></div></div>`;
-  const auto = ypOn() && !g.ypError;
+  if (g.state === "SUCCESS") return `<div class="paid"><span class="pc">${I.check}</span><div><b class="num">${inr(amt)} received by UPI</b><span class="num">${g.utr === "MANUAL" ? "Confirmed by the cashier" : "Ref " + esc(g.utr)}</span></div></div>`;
   return `<div class="qrwrap"><div class="qrbox ${g.state === "PROCESSING" ? "dim" : ""}"><canvas id="qr" width="340" height="340"></canvas></div>
     <div style="flex:1;min-width:170px"><b style="font-size:17px;font-family:var(--display)">Scan to pay ${inr(amt)}</b>
     <p class="note" style="margin:6px 0 0">Pays to <b>${esc(SHOP.upi) || "your UPI ID (add it in Settings)"}</b>. The amount is filled in for the customer. Any UPI app works.</p>
     <div class="apps"><span>GPay</span><span>PhonePe</span><span>Paytm</span><span>BHIM</span></div>
-    <div class="waiting">${auto ? `<span class="spin"></span>${g.state === "PROCESSING" ? "Bank message received, checking amount…" : `YouPI is watching for the bank SMS · <span class="num" id="gwTimer">10:00</span>`}` : `<span class="spin"></span>Waiting for the customer to pay`}</div></div></div>
+    <div class="waiting"><span class="spin"></span>Waiting for the customer to pay</div></div></div>
     <button class="confirm" id="gwManual" style="margin-top:4px;background:var(--good);color:#fff">${I.check}I got ${inr(amt)} in my bank app</button>
-    <p class="note" style="margin:0">${auto ? "The tick appears by itself when YouPI matches the bank SMS. If it is slow, check your bank app and press the green button." : "Check the payment in your bank or UPI app, then press the green button. Set up YouPI in Settings to confirm automatically."}</p>`;
+    <p class="note" style="margin:0">Check the payment in your bank or UPI app, then press the green button.</p>`;
 };
 const _openPay = openPay;
 openPay = function (keep) {
@@ -397,10 +372,6 @@ renderSettings = function () {
   <div class="ch" style="margin-top:16px"><h3>Install Galla</h3></div><div class="note" style="line-height:1.6">Android (Chrome): menu ⋮ then <b>Install app</b>. iPhone (Safari): Share then <b>Add to Home Screen</b>. It then opens like an app and works without internet.</div>
   ${S.installEvt ? `<button class="btn" id="installBtn" style="margin-top:10px">⬇️ Install now</button>` : ""}
   </div></div>
-  <div class="card" style="margin-top:12px"><div class="ch"><span class="gw" style="border:0;padding:0;background:none"><span class="gl">Y</span></span><h3>Automatic UPI check: YouPI PG</h3><div class="grow"></div><span class="pill ${ypOn() ? "ok" : "info"}">${ypOn() ? "On" : "Off"}</span></div>
-    <p class="note" style="margin:0 0 12px">Leave empty to confirm UPI payments yourself from your bank app. Fill in after you set up your own YouPI server and the Android SMS app, and the tick will appear by itself when the bank SMS arrives.</p>
-    <div class="f2">${f("ypUrl", "YouPI server address", "https://pay.yourshop.in")}${f("ypMerchant", "Merchant ID", "from the YouPI dashboard")}</div>
-    <div class="warnbox" style="margin-top:12px">${I.bell.replace("<svg", '<svg width="18" height="18"')}<span>YouPI is an experimental project, not a bank-approved gateway. Its makers suggest at most 20 payments a day while testing. Check your bank statement daily.</span></div></div>
   <div class="card" style="margin-top:12px"><div class="ch"><h3>Your data</h3></div>
     <p class="note" style="margin:0 0 12px">Everything is saved in this browser on this device. Export a backup file regularly, and import it to move to another phone.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="exportData">⬇️ Export backup</button><button class="btn ghost" id="importData">⬆️ Import backup</button><input type="file" id="importFile" accept="application/json,.json" hidden>
