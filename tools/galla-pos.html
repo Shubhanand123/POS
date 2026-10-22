@@ -601,12 +601,16 @@ function openPalette(){
   <div class="modeseg" role="group" aria-label="Light or dark">${[["light","Light"],["dark","Dark"],["system","Auto"]].map(([k,l])=>`<button data-mode="${k}" aria-pressed="${curMode()===k}">${l}</button>`).join("")}</div>`,"sm");
 }
 
+const MORE=["orders","reports","customers","settings"];
+function openMore(){const C={orders:["--info-soft","--info","All bills"],reports:["--brand-soft","--brand","Sales and profit"],customers:["--gold-soft","--gold","Phone, points, khata"],settings:["--bad-soft","--bad","Shop, UPI, scanner"]};
+  modal("More",`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${VIEWS.filter(v=>MORE.includes(v[0])).map(([k,l,i])=>`<button class="qa" data-mv="${k}"><span class="qi" style="background:var(${C[k][0]});color:var(${C[k][1]})">${I[i]}</span><b>${l}</b><span>${C[k][2]}</span></button>`).join("")}</div>`,"sm")}
 const VIEWS=[["home","Home","home"],["billing","Billing","bill"],["orders","Orders","orders"],["credit","Credit","khata"],["stock","Stock","stock"],["reports","Reports","report"],["customers","Customers","cust"],["settings","Settings","set"]];
 const lowCount=()=>P.filter(p=>p.stock<=5).length;
 const owing=()=>CUST.filter(c=>c.due>0);
 function renderNav(){
   $("#nav").innerHTML=VIEWS.map(([k,l,i])=>`<button data-v="${k}" ${S.view===k?'aria-current="page"':""} title="${l}">${I[i]}<span>${l}</span>${k==="stock"?`<span class="badge">${lowCount()}</span>`:k==="credit"&&owing().length?`<span class="badge">${owing().length}</span>`:""}</button>`).join("");
-  $("#tabbar").innerHTML=VIEWS.filter(v=>["home","billing","credit","stock","reports"].includes(v[0])).map(([k,l,i])=>`<button data-v="${k}" ${S.view===k?'aria-current="page"':""}>${I[i]}<span>${l}</span></button>`).join("");
+  $("#tabbar").innerHTML=VIEWS.filter(v=>["home","billing","credit","stock"].includes(v[0])).map(([k,l,i])=>`<button data-v="${k}" ${S.view===k?'aria-current="page"':""}>${I[i]}<span>${l}</span></button>`).join("")
+    +`<button id="moreBtn" ${MORE.includes(S.view)?'aria-current="page"':""}><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg><span>More</span></button>`;
 }
 
 function totals(){
@@ -924,6 +928,7 @@ document.addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;const d=b.dataset;
   if(b.classList.contains("prod"))return tap(+d.id);
   if(d.v)return go(d.v);
+  if(d.mv){closeModal();return go(d.mv)}
   if(d.c){S.cat=d.c;return render()}
   if(d.inc)return add(isNaN(+d.inc)?d.inc:+d.inc);
   if(d.sza){add(d.sza);return openSizes(+d.sza.split("#")[0])}
@@ -960,6 +965,7 @@ document.addEventListener("click",e=>{
     case"pickCust":return openCust();
     case"closeSheet":S.sheet=false;return render();
     case"mbar":S.sheet=true;return render();
+    case"moreBtn":return openMore();
     case"scanBtn":{const avail=P.filter(p=>p.stock);const p=avail[Math.floor(Math.random()*avail.length)];toast("Beep! Scanned "+p.name);return add(p.id)}
     case"paletteBtn":return openPalette();
     case"gwManual":if(S.gw){S.gw.state="SUCCESS";S.gw.utr="MANUAL";clearInterval(S.gwTimer)}toast("Marked as paid by the cashier");return openPay(true);
