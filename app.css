@@ -1,0 +1,57 @@
+/* Galla app additions: photos, forms, camera scanner, printing */
+.pphoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.pimg span:has(.pphoto){position:absolute;inset:0;transform:none;filter:none}
+.pimg:has(.pphoto)::after{display:none}
+.lthumb,.e{position:relative;overflow:hidden}
+
+.fgrid{display:flex;flex-direction:column;gap:12px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.flab{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:var(--muted);min-width:0}
+.finput{height:44px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface);color:var(--fg);padding:0 12px;font:inherit;font-size:15px;font-weight:600;width:100%;min-width:0}
+.finput:focus{outline:none;border-color:var(--a1,#3355ff);box-shadow:0 0 0 3px color-mix(in srgb,var(--a1,#3355ff) 22%,transparent)}
+select.finput{appearance:auto}
+.photo-row{display:flex;gap:14px;align-items:center}
+.photo-prev{width:96px;height:96px;border-radius:20px;display:grid;place-items:center;font-size:52px;overflow:hidden;flex:none;border:1px solid var(--line)}
+.photo-prev img{width:100%;height:100%;object-fit:cover}
+.lib{border:1px solid var(--line);border-radius:14px;padding:8px 12px;background:var(--surface-2)}
+.lib summary{cursor:pointer;font-weight:700;font-size:13px;padding:4px 0}
+.libgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:6px;margin-top:8px;max-height:190px;overflow:auto}
+.libgrid button{aspect-ratio:1;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:26px;display:grid;place-items:center}
+.libgrid button[aria-pressed="true"]{border:2px solid var(--a1,#3355ff);background:var(--t3)}
+.sizeform{display:flex;flex-direction:column;gap:8px}
+.szf{display:grid;grid-template-columns:1.3fr .8fr .8fr 1.6fr auto;gap:6px;align-items:center}
+.codein{display:flex;gap:8px;align-items:stretch}
+.codein .flab{flex:1}
+.szf .codein{gap:4px}
+.szf .codein .finput{flex:1}
+.szf .mini,.codein .mini{height:44px}
+
+.camwrap{position:relative;aspect-ratio:4/3;background:#000;border-radius:18px;overflow:hidden}
+.camwrap video{width:100%;height:100%;object-fit:cover;display:block}
+.camframe{position:absolute;inset:22% 12%;border:3px solid rgba(255,255,255,.9);border-radius:16px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+.camline{position:absolute;left:14%;right:14%;top:50%;height:2px;background:#ff3b3b;box-shadow:0 0 10px #ff3b3b;animation:camscan 1.8s ease-in-out infinite;z-index:1}
+@keyframes camscan{0%,100%{top:26%}50%{top:74%}}
+.camlist{display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:140px;overflow:auto}
+.camhit{padding:8px 12px;border-radius:10px;background:var(--t1);font-weight:700;font-size:13px;animation:rise .25s}
+
+#printArea{display:none}
+@media print{
+  @page{margin:4mm}
+  body{overflow:visible!important;background:#fff!important}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block!important;margin:0 auto}
+  #printArea.paper80{width:72mm}
+  #printArea.paper58{width:48mm;font-size:11px}
+  #printArea.paperA4{width:180mm}
+  #printArea *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media (max-width:560px){
+  .f3{grid-template-columns:1fr 1fr}
+  .szf{grid-template-columns:1fr 1fr 1fr}
+  .szf .codein{grid-column:1/-1}
+  .photo-prev{width:80px;height:80px}
+}
+.pfoot{min-width:0}
+.padd{flex:none}
+@media (max-width:480px){.pprice .pfrom:first-child{display:none}.ptag{margin-right:4px;padding:3px 6px}}
